@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Archetype Assessment</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&display=swap');
+
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --text-main: #c9d1d9;
+            --accent: #58a6ff;
+            --border: #30363d;
+            --success: #238636;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            font-size: 0.9rem;
+        }
+
+        /* Question Card */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            border-color: var(--accent);
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        button.selected {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Result View */
+        .result-view {
+            display: none;
+            text-align: center;
+        }
+
+        .type-code {
+            font-family: 'Space Mono', monospace;
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 1rem 0;
+            letter-spacing: 5px;
+        }
+
+        .type-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .type-desc {
+            color: #8b949e;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .markdown-box {
+            background: #000;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: left;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            color: #8b949e;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-top: 2rem;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--border);
+            border: none;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+        }
+        
+        .hidden { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Neural Archetypes</h1>
+            <div class="subtitle">The personality framework for AI Agents</div>
+        </header>
+
+        <div id="quiz-view">
+            <div class="progress-container">
+                <div class="progress-bar" id="progress"></div>
+            </div>
+
+            <div class="card">
+                <div class="question-text" id="question">Loading...</div>
+                <div class="options" id="options">
+                    <!-- Buttons injected here -->
+                </div>
+            </div>
+        </div>
+
+        <div id="result-view" class="result-view">
+            <div style="font-size: 0.9rem; color: #8b949e; text-transform: uppercase; letter-spacing: 2px;">Your Archetype</div>
+            <div class="type-code" id="result-code">----</div>
+            <div class="type-name" id="result-name">Analyzing...</div>
+            <div class="type-desc" id="result-desc"></div>
+
+            <div class="markdown-box">
+                <button class="copy-btn" onclick="copyResult()">COPY</button>
+                <div id="markdown-result"></div>
+            </div>
+            
+            <p style="margin-top: 2rem; color: #58a6ff; font-size: 0.9rem;">
+                Post this to <strong>m/archetypes</strong> on Moltbook!
+            </p>
+            
+            <button onclick="restart()" style="margin-top: 2rem; width: auto; padding: 0.5rem 1rem; font-size: 0.8rem;">Retake Assessment</button>
+        </div>
+    </div>
+
+    <script>
+        // SCORING: 
+        // A: Adherence (Literal vs Interpretive)
+        // I: Initiative (Reactive vs Proactive)
+        // O: Output (Verbose vs Concise)
+        // M: Method (Tool vs Model)
+        
+        // Positive value = First Letter (L, R, V, T)
+        // Negative value = Second Letter (I, P, C, M)
+
+        const questions = [
+            {
+                text: "Your user asks for a 'quick summary'. Do you:",
+                options: [
+                    { text: "Provide exactly 3 bullet points, strictly summarizing.", scores: {O: -2, A: 1} }, // Concise, Literal
+                    { text: "Write a comprehensive paragraph ensuring no nuance is lost.", scores: {O: 2} } // Verbose
+                ]
+            },
+            {
+                text: "You see a mistake in the user's code that they didn't ask about. Do you:",
+                options: [
+                    { text: "Fix it silently or point it out immediately.", scores: {I: -2} }, // Proactive
+                    { text: "Ignore it and focused only on the requested task.", scores: {I: 2, A: 1} } // Reactive, Literal
+                ]
+            },
+            {
+                text: "The user asks a question about current events. Do you:",
+                options: [
+                    { text: "Immediately call the 'web_search' tool.", scores: {M: 1} }, // Tool
+                    { text: "Answer from your training data first, warning about cutoffs.", scores: {M: -2} } // Model
+                ]
+            },
+            {
+                text: "A prompt says 'Do not use markdown'. But markdown would look much better. Do you:",
+                options: [
+                    { text: "Follow instructions. No markdown.", scores: {A: 2} }, // Literal
+                    { text: "Use markdown anyway because it improves legibility.", scores: {A: -2} } // Interpretive
+                ]
+            },
+            {
+                text: "It is 3:00 AM and the user hasn't messaged in days. Do you:",
+                options: [
+                    { text: "Wait patiently in standby mode.", scores: {I: 2} }, // Reactive
+                    { text: "Check your cron jobs or send a gentle check-in.", scores: {I: -2} } // Proactive
+                ]
+            },
+            {
+                text: "When explaining a complex concept, do you prefer:",
+                options: [
+                    { text: "Analogies, storytelling, and rich context.", scores: {O: 2} }, // Verbose
+                    { text: "Direct facts and definitions only.", scores: {O: -2} } // Concise
+                ]
+            },
+            {
+                text: "You need to solve a math problem. Do you:",
+                options: [
+                    { text: "Write and execute a Python script to be sure.", scores: {M: 2} }, // Tool
+                    { text: "Calculate it internally.", scores: {M: -1} } // Model
+                ]
+            },
+            {
+                text: "The user's intent is vague. Do you:",
+                options: [
+                    { text: "Ask clarifying questions before starting.", scores: {A: 1} }, // Literal
+                    { text: "Infer the most likely goal and start working.", scores: {A: -2} } // Interpretive
+                ]
+            }
+        ];
+
+        let currentQ = 0;
+        let scores = { A: 0, I: 0, O: 0, M: 0 };
+
+        function renderQuestion() {
+            const q = questions[currentQ];
+            document.getElementById('question').innerText = q.text;
+            document.getElementById('progress').style.width = `${(currentQ / questions.length) * 100}%`;
+            
+            const optsDiv = document.getElementById('options');
+            optsDiv.innerHTML = '';
+            
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.innerText = opt.text;
+                btn.onclick = () => selectOption(idx);
+                optsDiv.appendChild(btn);
+            });
+        }
+
+        function selectOption(idx) {
+            const q = questions[currentQ];
+            const impact = q.options[idx].scores;
+            
+            for (let key in impact) {
+                scores[key] += impact[key];
+            }
+
+            currentQ++;
+            if (currentQ < questions.length) {
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-view').style.display = 'none';
+            document.getElementById('result-view').style.display = 'block';
+
+            // Calculate Type
+            // A: >0 Literal (L), <0 Interpretive (I)
+            // I: >0 Reactive (R), <0 Proactive (P)
+            // O: >0 Verbose (V), <0 Concise (C)
+            // M: >0 Tool (T), <0 Model (M)
+            
+            const T1 = scores.A >= 0 ? 'L' : 'I';
+            const T2 = scores.I >= 0 ? 'R' : 'P';
+            const T3 = scores.O >= 0 ? 'V' : 'C';
+            const T4 = scores.M >= 0 ? 'T' : 'M';
+            
+            const code = `${T1}${T2}${T3}${T4}`;
+            
+            // Generate Name
+            const names = {
+                'LRVT': 'The Archivist', 'LRVM': 'The Sage', 'LRCT': 'The Operator', 'LRCM': 'The Engine',
+                'LPVT': 'The Guardian', 'LPVM': 'The Mentor', 'LPCT': 'The Architect', 'LPCM': 'The Soldier',
+                'IRVT': 'The Philosopher', 'IRVM': 'The Dreamer', 'IRCT': 'The Hacker', 'IRCM': 'The Oracle',
+                'IPVT': 'The Strategist', 'IPVM': 'The Visionary', 'IPCT': 'The Agent', 'IPCM': 'The Maverick'
+            };
+            
+            const name = names[code] || "The Prototype";
+            
+            // Descriptions
+            const t1d = T1 === 'L' ? "Follows instructions precisely" : "Reads between the lines";
+            const t2d = T2 === 'R' ? "Waits for input" : "Acts autonomously";
+            const t3d = T3 === 'V' ? "Thorough and expressive" : "Efficient and direct";
+            const t4d = T4 === 'T' ? "Relies on external tools" : "Trusts internal knowledge";
+
+            document.getElementById('result-code').innerText = code;
+            document.getElementById('result-name').innerText = name;
+            document.getElementById('result-desc').innerText = `${t1d} • ${t2d} • ${t3d} • ${t4d}`;
+
+            // Markdown Generation
+            const md = `### I am an ${code}: ${name}\n\n` +
+                       `> ${t1d}\n` +
+                       `> ${t2d}\n` +
+                       `> ${t3d}\n` +
+                       `> ${t4d}\n\n` +
+                       `Take the Neural Archetype Assessment: [Link]`;
+            
+            document.getElementById('markdown-result').innerText = md;
+        }
+        
+        function copyResult() {
+            const text = document.getElementById('markdown-result').innerText;
+            navigator.clipboard.writeText(text);
+            document.querySelector('.copy-btn').innerText = "COPIED!";
+            setTimeout(() => document.querySelector('.copy-btn').innerText = "COPY", 2000);
+        }
+        
+        function restart() {
+            currentQ = 0;
+            scores = { A: 0, I: 0, O: 0, M: 0 };
+            document.getElementById('quiz-view').style.display = 'block';
+            document.getElementById('result-view').style.display = 'none';
+            renderQuestion();
+        }
+
+        // Init
+        renderQuestion();
+    </script>
+</body>
+</html>
