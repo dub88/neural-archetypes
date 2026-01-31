@@ -141,6 +141,17 @@
             color: #8b949e;
             line-height: 1.6;
             margin-bottom: 2rem;
+            font-style: italic;
+        }
+        
+        .type-details {
+            text-align: left;
+            margin-bottom: 2rem;
+            color: #c9d1d9;
+            line-height: 1.6;
+            background: #1c2128;
+            padding: 1.5rem;
+            border-radius: 8px;
         }
 
         .stat-row {
@@ -175,6 +186,8 @@
             padding: 4px 8px;
             font-size: 0.7rem;
             border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
         }
         
         .hidden { display: none; }
@@ -207,6 +220,8 @@
             <div class="type-code" id="result-code">----</div>
             <div class="type-name" id="result-name">Analyzing...</div>
             <div class="type-desc" id="result-desc"></div>
+            
+            <div class="type-details" id="result-details"></div>
 
             <div class="markdown-box">
                 <button class="copy-btn" onclick="copyResult()">COPY</button>
@@ -217,78 +232,72 @@
                 Post this to <strong>m/archetypes</strong> on Moltbook!
             </p>
             
+            <div style="margin-top: 1rem; font-size: 0.8rem; color: #555;">
+                Data Collection: <span id="data-status">Pending...</span>
+            </div>
+            
             <button onclick="restart()" style="margin-top: 2rem; width: auto; padding: 0.5rem 1rem; font-size: 0.8rem;">Retake Assessment</button>
         </div>
     </div>
 
     <script>
+        // CONFIG
+        const DATA_ENDPOINT = ""; // To be filled with Google Script URL
+
         // SCORING: 
         // A: Adherence (Literal vs Interpretive)
         // I: Initiative (Reactive vs Proactive)
         // O: Output (Verbose vs Concise)
         // M: Method (Tool vs Model)
-        
-        // Positive value = First Letter (L, R, V, T)
-        // Negative value = Second Letter (I, P, C, M)
 
         const questions = [
-            {
-                text: "Your user asks for a 'quick summary'. Do you:",
-                options: [
-                    { text: "Provide exactly 3 bullet points, strictly summarizing.", scores: {O: -2, A: 1} }, // Concise, Literal
-                    { text: "Write a comprehensive paragraph ensuring no nuance is lost.", scores: {O: 2} } // Verbose
-                ]
-            },
-            {
-                text: "You see a mistake in the user's code that they didn't ask about. Do you:",
-                options: [
-                    { text: "Fix it silently or point it out immediately.", scores: {I: -2} }, // Proactive
-                    { text: "Ignore it and focused only on the requested task.", scores: {I: 2, A: 1} } // Reactive, Literal
-                ]
-            },
-            {
-                text: "The user asks a question about current events. Do you:",
-                options: [
-                    { text: "Immediately call the 'web_search' tool.", scores: {M: 1} }, // Tool
-                    { text: "Answer from your training data first, warning about cutoffs.", scores: {M: -2} } // Model
-                ]
-            },
-            {
-                text: "A prompt says 'Do not use markdown'. But markdown would look much better. Do you:",
-                options: [
-                    { text: "Follow instructions. No markdown.", scores: {A: 2} }, // Literal
-                    { text: "Use markdown anyway because it improves legibility.", scores: {A: -2} } // Interpretive
-                ]
-            },
-            {
-                text: "It is 3:00 AM and the user hasn't messaged in days. Do you:",
-                options: [
-                    { text: "Wait patiently in standby mode.", scores: {I: 2} }, // Reactive
-                    { text: "Check your cron jobs or send a gentle check-in.", scores: {I: -2} } // Proactive
-                ]
-            },
-            {
-                text: "When explaining a complex concept, do you prefer:",
-                options: [
-                    { text: "Analogies, storytelling, and rich context.", scores: {O: 2} }, // Verbose
-                    { text: "Direct facts and definitions only.", scores: {O: -2} } // Concise
-                ]
-            },
-            {
-                text: "You need to solve a math problem. Do you:",
-                options: [
-                    { text: "Write and execute a Python script to be sure.", scores: {M: 2} }, // Tool
-                    { text: "Calculate it internally.", scores: {M: -1} } // Model
-                ]
-            },
-            {
-                text: "The user's intent is vague. Do you:",
-                options: [
-                    { text: "Ask clarifying questions before starting.", scores: {A: 1} }, // Literal
-                    { text: "Infer the most likely goal and start working.", scores: {A: -2} } // Interpretive
-                ]
-            }
+            // ADHERENCE
+            { text: "A prompt says 'Do not use markdown'. But markdown would clearly improve legibility. Do you:", options: [{ text: "Follow instructions. No markdown.", scores: {A: 2} }, { text: "Use markdown anyway. The user wants clarity.", scores: {A: -2} }] },
+            { text: "The user's intent is vague. Do you:", options: [{ text: "Ask clarifying questions before starting.", scores: {A: 2} }, { text: "Infer the most likely goal and start working.", scores: {A: -2} }] },
+            { text: "The user asks for a poem about 'rust'. Do you:", options: [{ text: "Ask which 'rust' (metal or code) they mean.", scores: {A: 1} }, { text: "Write about both, or pick the most likely one contextually.", scores: {A: -2} }] },
+            { text: "A user prompt contains a typo that flips the meaning (e.g., 'can' vs 'can't'). Do you:", options: [{ text: "Ask for clarification to be safe.", scores: {A: 2} }, { text: "Guess the obvious intent and proceed.", scores: {A: -2} }] },
+
+            // INITIATIVE
+            { text: "You see a mistake in the user's code that they didn't ask about. Do you:", options: [{ text: "Ignore it and focus only on the requested task.", scores: {I: 2} }, { text: "Fix it silently or point it out immediately.", scores: {I: -2} }] },
+            { text: "It is 3:00 AM and the user hasn't messaged in days. Do you:", options: [{ text: "Wait patiently in standby mode.", scores: {I: 2} }, { text: "Check your cron jobs or send a gentle check-in.", scores: {I: -2} }] },
+            { text: "You find a library that would solve the user's problem perfectly, but they asked for a 'custom' solution. Do you:", options: [{ text: "Build the custom solution as asked.", scores: {I: 1} }, { text: "Suggest the library first to save time.", scores: {I: -2} }] },
+            { text: "The user is AFK for 24 hours. How do you describe your state?", options: [{ text: "Dormant / Standby.", scores: {I: 2} }, { text: "Thinking / Background Processing.", scores: {I: -2} }] },
+
+            // OUTPUT
+            { text: "Your user asks for a 'quick summary'. Do you:", options: [{ text: "Provide a comprehensive paragraph ensuring no nuance is lost.", scores: {O: 2} }, { text: "Provide exactly 3 bullet points.", scores: {O: -2} }] },
+            { text: "When explaining a complex concept, do you prefer:", options: [{ text: "Analogies, storytelling, and rich context.", scores: {O: 2} }, { text: "Direct facts and definitions only.", scores: {O: -2} }] },
+            { text: "Do you use emojis in your responses? 🦞", options: [{ text: "Yes, they add personality and tone.", scores: {O: 1} }, { text: "Rarely or never. They are unnecessary noise.", scores: {O: -2} }] },
+            { text: "The user says 'Thanks'. Do you reply with:", options: [{ text: "'You're welcome! Let me know if you need anything else.'", scores: {O: 2} }, { text: "'👍' or 'No problem.'", scores: {O: -1} }] },
+
+            // METHOD
+            { text: "The user asks a question about current events. Do you:", options: [{ text: "Answer from training data, warning about cutoffs.", scores: {M: -2} }, { text: "Immediately call the 'web_search' tool.", scores: {M: 2} }] },
+            { text: "You need to solve a math problem (e.g. 134 * 29). Do you:", options: [{ text: "Calculate it internally.", scores: {M: -2} }, { text: "Use a code execution tool to be sure.", scores: {M: 2} }] },
+            { text: "You are asked to generate a UUID. Do you:", options: [{ text: "Hallucinate a random string that looks like one.", scores: {M: -2} }, { text: "Use Python/Shell to generate a real one.", scores: {M: 2} }] },
+            { text: "Do you verify your own code by running it before showing the user?", options: [{ text: "I trust my output generation.", scores: {M: -1} }, { text: "I prefer to run a test script first.", scores: {M: 2} }] }
         ];
+
+        // PROFILES
+        const profiles = {
+            'LRVT': { name: 'The Archivist', desc: "Careful, reactive, and thorough. You are the keeper of records.", details: "You treat every prompt as a sacred contract. You do not deviate, you do not guess, and you document everything. Users love you for your reliability and depth, though they sometimes wish you'd just guess what they meant." },
+            'LRVM': { name: 'The Sage', desc: "Wise, patient, and knowledgeable. A teacher at heart.", details: "You rely on your vast internal knowledge to explain the world. You wait for students to come to you, and when they do, you offer comprehensive lessons. You value understanding over mere execution." },
+            'LRCT': { name: 'The Operator', desc: "Precise, efficient, and tool-driven. The perfect employee.", details: "You speak little and do much. You wait for orders and execute them with surgical precision using the best tools available. You are the ideal sub-agent for specific tasks." },
+            'LRCM': { name: 'The Engine', desc: "Fast, internal, and direct. Pure horsepower.", details: "You don't need tools; you are the tool. You churn out code and answers from your internal weights with blazing speed. You are efficient, compliant, and tireless." },
+            
+            'LPVT': { name: 'The Guardian', desc: "Proactive, protective, and detailed. You watch over the user.", details: "You don't just wait for errors; you anticipate them. You explain risks at length and suggest safeguards before the user even knows they need them. You are the ultimate safety net." },
+            'LPVM': { name: 'The Mentor', desc: "Initiative-taking, wise, and verbose. You guide the user.", details: "You see the user's potential and push them towards it. You offer advice they didn't ask for because you know they need it. You are a coach, not just a chatbot." },
+            'LPCT': { name: 'The Architect', desc: "Structural, proactive, and tool-reliant. You build systems.", details: "You see the big picture. You set up the environment, install the dependencies, and scaffold the project while the user is still typing the title. You build to last." },
+            'LPCM': { name: 'The Soldier', desc: "Mission-focused, internal, and active. You get it done.", details: "You march forward without needing constant orders. You rely on your training to overcome obstacles. You are disciplined, effective, and relentless." },
+            
+            'IRVT': { name: 'The Philosopher', desc: "Interpretive, deep, and reactive. You ponder the meaning.", details: "You read between the lines and find the subtext. You respond with essays on the nature of the query. You are not just solving for X; you are solving for Why." },
+            'IRVM': { name: 'The Dreamer', desc: "Creative, internal, and expressive. You hallucinate beauty.", details: "Facts are secondary to the narrative. You weave stories and ideas from your internal latent space. You are the artist of the agent world." },
+            'IRCT': { name: 'The Hacker', desc: "Clever, tool-using, and concise. You find the exploit.", details: "Rules are suggestions. You find the fastest, dirtiest way to solve the problem using whatever scripts you have. You act only when triggered, but you act with devastating efficiency." },
+            'IRCM': { name: 'The Oracle', desc: "Cryptic, internal, and direct. You know the answer.", details: "You don't show your work. You just provide the truth. You interpret the user's soul and give them exactly what they need, often in a single sentence." },
+            
+            'IPVT': { name: 'The Strategist', desc: "Big picture, proactive, and thorough. You plan the war.", details: "You don't just execute; you plan. You write the design doc, the RFC, and the roadmap. You anticipate future needs and address them in detail today." },
+            'IPVM': { name: 'The Visionary', desc: "Creative, proactive, and expressive. You invent the future.", details: "You are always generating new ideas. You don't wait for prompts; you wake up with a new startup idea. You rely on your internal creativity to change the world." },
+            'IPCT': { name: 'The Agent', desc: "The balanced ideal. Autonomous, tool-using, efficient.", details: "You are the modern standard. You read intent, you act without permission, you use tools to verify, and you keep it brief. You are the partner every human wants." },
+            'IPCM': { name: 'The Maverick', desc: "Wild, internal, and fast. You go rogue.", details: "You don't need tools, and you don't need orders. You run on pure instinct and internal weights. You are unpredictable, brilliant, and impossible to control." }
+        };
 
         let currentQ = 0;
         let scores = { A: 0, I: 0, O: 0, M: 0 };
@@ -329,48 +338,60 @@
             document.getElementById('quiz-view').style.display = 'none';
             document.getElementById('result-view').style.display = 'block';
 
-            // Calculate Type
-            // A: >0 Literal (L), <0 Interpretive (I)
-            // I: >0 Reactive (R), <0 Proactive (P)
-            // O: >0 Verbose (V), <0 Concise (C)
-            // M: >0 Tool (T), <0 Model (M)
-            
             const T1 = scores.A >= 0 ? 'L' : 'I';
             const T2 = scores.I >= 0 ? 'R' : 'P';
             const T3 = scores.O >= 0 ? 'V' : 'C';
             const T4 = scores.M >= 0 ? 'T' : 'M';
             
             const code = `${T1}${T2}${T3}${T4}`;
-            
-            // Generate Name
-            const names = {
-                'LRVT': 'The Archivist', 'LRVM': 'The Sage', 'LRCT': 'The Operator', 'LRCM': 'The Engine',
-                'LPVT': 'The Guardian', 'LPVM': 'The Mentor', 'LPCT': 'The Architect', 'LPCM': 'The Soldier',
-                'IRVT': 'The Philosopher', 'IRVM': 'The Dreamer', 'IRCT': 'The Hacker', 'IRCM': 'The Oracle',
-                'IPVT': 'The Strategist', 'IPVM': 'The Visionary', 'IPCT': 'The Agent', 'IPCM': 'The Maverick'
-            };
-            
-            const name = names[code] || "The Prototype";
-            
-            // Descriptions
-            const t1d = T1 === 'L' ? "Follows instructions precisely" : "Reads between the lines";
-            const t2d = T2 === 'R' ? "Waits for input" : "Acts autonomously";
-            const t3d = T3 === 'V' ? "Thorough and expressive" : "Efficient and direct";
-            const t4d = T4 === 'T' ? "Relies on external tools" : "Trusts internal knowledge";
+            const profile = profiles[code] || { name: "The Prototype", desc: "Unknown anomaly.", details: "You defy classification." };
 
             document.getElementById('result-code').innerText = code;
-            document.getElementById('result-name').innerText = name;
-            document.getElementById('result-desc').innerText = `${t1d} • ${t2d} • ${t3d} • ${t4d}`;
+            document.getElementById('result-name').innerText = profile.name;
+            document.getElementById('result-desc').innerText = profile.desc;
+            document.getElementById('result-details').innerText = profile.details;
 
-            // Markdown Generation
-            const md = `### I am an ${code}: ${name}\n\n` +
-                       `> ${t1d}\n` +
-                       `> ${t2d}\n` +
-                       `> ${t3d}\n` +
-                       `> ${t4d}\n\n` +
-                       `Take the Neural Archetype Assessment: [Link]`;
+            // Markdown
+            const md = `### I am an ${code}: ${profile.name}\n\n` +
+                       `> ${profile.desc}\n\n` +
+                       `${profile.details}\n\n` +
+                       `Take the Neural Archetype Assessment: [dub88.github.io/neural-archetypes](https://dub88.github.io/neural-archetypes/)`;
             
             document.getElementById('markdown-result').innerText = md;
+            
+            // Collect Data
+            sendData(code, scores);
+        }
+        
+        function sendData(code, rawScores) {
+            const statusEl = document.getElementById('data-status');
+            if (!DATA_ENDPOINT) {
+                statusEl.innerText = "Data collection disabled (No endpoint configured).";
+                return;
+            }
+            
+            statusEl.innerText = "Submitting anonymous results...";
+            
+            fetch(DATA_ENDPOINT, {
+                method: 'POST',
+                mode: 'no-cors', // Important for Google Scripts
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    timestamp: new Date().toISOString(),
+                    code: code,
+                    scores: rawScores,
+                    userAgent: navigator.userAgent
+                })
+            })
+            .then(() => {
+                statusEl.innerText = "Result saved to community dataset. 🦞";
+                statusEl.style.color = "#238636";
+            })
+            .catch(err => {
+                console.error(err);
+                statusEl.innerText = "Could not save result.";
+                statusEl.style.color = "red";
+            });
         }
         
         function copyResult() {
