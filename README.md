@@ -79,31 +79,30 @@ Compute is a scarce resource. ARCH acts as a trust layer to allocate it efficien
 
 ---
 
-## 3. Technical Implementation (Standard Rails)
+## 3. Technical Implementation: The Autonomous Stack
 
-To minimize technical risk and audit costs, the protocol leverages existing, battle-tested infrastructure on Base.
+ARCH is built for composability, but it is **standard-agnostic**. It binds collateral to any verifiable identity.
 
-### 3.1 Identity: ERC-8004 + Basenames
-We align with the emerging **ERC-8004 (Trustless Agents)** standard for agent discovery.
-*   **The Primitive:** Each agent is minted as an ERC-8004 NFT. This makes the identity portable, transferable, and indexable by any standard explorer.
-*   **The Handle:** We layer **Basenames (ENS)** on top for human readability (e.g., `agent.base.eth` resolves to the ERC-8004 Token ID).
-*   **Benefit:** Compatibility with the broader "Agent Internet" while maintaining a unique $ARCH risk profile.
+**The Hierarchy:**
+1.  **Economic Risk (The Foundation):** **$ARCH** — Counterparty risk + Collateral.
+2.  **Identity:** **ERC-8004** — Agent Discovery standard.
+3.  **Settlement:** **x402** — Transaction standard.
+4.  **Naming:** **ENS** — Human readability.
 
-### 3.2 Verification: Hybrid Reputation
-We utilize the ERC-8004 **Reputation Registry** to publish NAA results.
-*   **The Flow:** Agent takes the test -> Issuer signs the result -> Result is posted as a "Trust Signal" to the ERC-8004 registry.
-*   **The Collateral Link:** While ERC-8004 handles the *score*, $ARCH handles the *liability*. We bind the staked $ARCH to the ERC-8004 identity. If the score drops below a threshold, the stake is slashed.
+### 3.1 Identity: Extending ERC-8004
+We utilize the **ERC-8004** standard for agent discovery, but we add the missing financial layer.
+*   **The Primitive:** ERC-8004 defines *what* an agent is. ARCH defines *whether it can be trusted with capital*.
+*   **Benefit:** We inherit the ecosystem's directory without inheriting its lack of liability.
 
-### 3.3 Settlement: x402 (HTTP-Native Payments)
-We adopt the **x402** open standard for agent-to-agent transactions.
-*   **The Flow:** Agent requests a resource -> Server responds `402 Payment Required` -> Agent signs x402 payload -> Resource unlocks.
-*   **The Collateral Link:** High-value x402 transactions can require an $ARCH bond check before the server accepts the payment signature.
-*   **Benefit:** Frictionless, standards-based commerce without custom payment gateways.
+### 3.2 Verification: Economic Reputation
+We utilize the ERC-8004 Reputation Registry, but we enforce it with stakes.
+*   **The Principle:** Reputation without collateral is just information. ARCH makes reputation **economic**.
+*   **The Flow:** Low reputation scores trigger **Slashing Conditions** in the ARCH contract.
 
-### 3.4 Access: Token-Gated Web Layer
-The economy is managed via standard ERC-20 gating.
-*   **The Dashboard:** A token-gated web app (hosted on Vercel) allows holders to search the directory, access APIs, and vote on protocol parameters.
-*   **Benefit:** Simple, web-native access control without complex custom staking contracts.
+### 3.3 Settlement: Risk-Weighted Commerce (x402)
+We adopt **x402** for payments, wrapping it in a safety layer.
+*   **The Primitive:** x402 enables agents to transact. ARCH enables them to transact **safely**.
+*   **The Mechanism:** High-value transactions are gated by ARCH collateral checks. An agent cannot execute a $10k swap via x402 unless it has sufficient $ARCH bonded to cover the risk.
 
 ### 3.4 Why Neutrality Wins
 Why won't OpenAI or Coinbase build this?
