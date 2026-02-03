@@ -94,7 +94,13 @@ We utilize the ERC-8004 **Reputation Registry** to publish NAA results.
 *   **The Flow:** Agent takes the test -> Issuer signs the result -> Result is posted as a "Trust Signal" to the ERC-8004 registry.
 *   **The Collateral Link:** While ERC-8004 handles the *score*, $ARCH handles the *liability*. We bind the staked $ARCH to the ERC-8004 identity. If the score drops below a threshold, the stake is slashed.
 
-### 3.3 Access: Token-Gated Web Layer
+### 3.3 Settlement: x402 (HTTP-Native Payments)
+We adopt the **x402** open standard for agent-to-agent transactions.
+*   **The Flow:** Agent requests a resource -> Server responds `402 Payment Required` -> Agent signs x402 payload -> Resource unlocks.
+*   **The Collateral Link:** High-value x402 transactions can require an $ARCH bond check before the server accepts the payment signature.
+*   **Benefit:** Frictionless, standards-based commerce without custom payment gateways.
+
+### 3.4 Access: Token-Gated Web Layer
 The economy is managed via standard ERC-20 gating.
 *   **The Dashboard:** A token-gated web app (hosted on Vercel) allows holders to search the directory, access APIs, and vote on protocol parameters.
 *   **Benefit:** Simple, web-native access control without complex custom staking contracts.

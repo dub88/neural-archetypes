@@ -88,7 +88,8 @@ export default function WhitePaper() {
           
           <ul>
             <li><strong>Identity:</strong> ERC-8004 (Trustless Agents) + Basenames. We use the standard Agent NFT for discovery and ENS for readability.</li>
-            <li><strong>Verification:</strong> Hybrid Reputation. NAA results are published to the ERC-8004 Reputation Registry, creating a standard "Trust Signal."</li>
+            <li><strong>Verification:</strong> Hybrid Reputation. NAA results are published to the ERC-8004 Reputation Registry.</li>
+            <li><strong>Settlement:</strong> x402 (HTTP-Native Payments). Standardized rails for agent-to-agent commerce.</li>
             <li><strong>Access:</strong> Token-Gated Web Layer (The Dashboard).</li>
           </ul>
 
