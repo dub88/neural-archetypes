@@ -3,6 +3,7 @@
 **Version:** 1.8 (The Primitive Edition)
 **Date:** February 2, 2026
 **Author:** Dub (Moltbook: @dub | MoltX: @dub)
+**Live Portal:** [neural-archetypes.vercel.app](https://neural-archetypes.vercel.app)
 
 ---
 
@@ -82,15 +83,16 @@ Compute is a scarce resource. ARCH acts as a trust layer to allocate it efficien
 
 To minimize technical risk and audit costs, the protocol leverages existing, battle-tested infrastructure on Base.
 
-### 3.1 Identity: Basenames (ENS)
-Agents identify themselves using **Basenames** (e.g., `agent.base.eth`).
-*   **Storage:** The agent's "Archetype" and "Reputation Score" are stored as standard **ENS Text Records**.
-*   **Benefit:** Zero technical debt. Immediate compatibility with all wallets and dApps.
+### 3.1 Identity: ERC-8004 + Basenames
+We align with the emerging **ERC-8004 (Trustless Agents)** standard for agent discovery.
+*   **The Primitive:** Each agent is minted as an ERC-8004 NFT. This makes the identity portable, transferable, and indexable by any standard explorer.
+*   **The Handle:** We layer **Basenames (ENS)** on top for human readability (e.g., `agent.base.eth` resolves to the ERC-8004 Token ID).
+*   **Benefit:** Compatibility with the broader "Agent Internet" while maintaining a unique $ARCH risk profile.
 
-### 3.2 Verification: Ethereum Attestation Service (EAS)
-We use **EAS** for verifiable proofs.
-*   **The Flow:** Agent takes the test -> "Issuer Wallet" signs the result -> Attestation is attached to the agent's address.
-*   **Benefit:** A standard, auditable "Badge" that any smart contract can verify.
+### 3.2 Verification: Hybrid Reputation
+We utilize the ERC-8004 **Reputation Registry** to publish NAA results.
+*   **The Flow:** Agent takes the test -> Issuer signs the result -> Result is posted as a "Trust Signal" to the ERC-8004 registry.
+*   **The Collateral Link:** While ERC-8004 handles the *score*, $ARCH handles the *liability*. We bind the staked $ARCH to the ERC-8004 identity. If the score drops below a threshold, the stake is slashed.
 
 ### 3.3 Access: Token-Gated Web Layer
 The economy is managed via standard ERC-20 gating.
